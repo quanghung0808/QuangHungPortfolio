@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Button, Col, Form, FormFeedback, FormGroup, Input, Label } from 'reactstrap';
-
+import { Button, Form, FormFeedback, FormGroup, Input, Label } from 'reactstrap';
+import emailjs from 'emailjs-com'
 
 export default class Contact extends React.Component {
     constructor(props) {
@@ -17,6 +17,8 @@ export default class Contact extends React.Component {
                 name: false,
                 telnum: false,
                 email: false,
+                title: false,
+                message: false
             }
         }
         this.handleInputChange = this.handleInputChange.bind(this);
@@ -29,11 +31,13 @@ export default class Contact extends React.Component {
         });
     }
 
-    validate(name, email, telnum) {
+    validate(name, email, telnum, title, message) {
         const errors = {
             name: '',
             telnum: '',
-            email: ''
+            email: '',
+            title: '',
+            message: ''
         };
         if (this.state.touched.name && name.length < 3)
             errors.name = 'Name should be at least 3 characters';
@@ -43,8 +47,12 @@ export default class Contact extends React.Component {
         if (this.state.touched.telnum && !regTelnum.test(telnum))
             errors.telnum = 'Invalid Tel.Number';
         const regEmail = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
-        if (this.state.touched.telnum && !regEmail.test(email))
+        if (this.state.touched.email && !regEmail.test(email))
             errors.email = 'Invalid Email Address';
+        if (this.state.touched.title && title.length < 1)
+            errors.title = 'You must input a title';
+        if (this.state.touched.message && message.length < 1)
+            errors.message = 'You must input a message';
         return errors;
     }
 
@@ -55,13 +63,24 @@ export default class Contact extends React.Component {
         this.setState({ [name]: value });
     }
     handleSubmit(event) {
-        console.log('Current state is: ' + JSON.stringify(this.state));
-        alert('Current state is: ' + JSON.stringify(this.state));
-        event.preventDefault();
+        if (this.state.title === '') {
+            this.setState({ title: "No title" })
+        }
+        if (this.state.message === '') {
+            this.setState({ message: "No message" })
+        }
+        const target = event.target;
+        emailjs.sendForm('gmail', 'template_gmail', target, 'tTZgK80dCV-FMhGZA')
+            .then((result) => {
+                console.log(result.text);
+            }, (error) => {
+                console.log(error.text);
+            });
+        event.target.reset();
     }
 
     render() {
-        const errors = this.validate(this.state.name, this.state.email, this.state.telnum);
+        const errors = this.validate(this.state.name, this.state.email, this.state.telnum, this.state.title, this.state.message);
         return (
             <div >
                 <div className="section-bg bgContact pp-scrollable">
@@ -139,28 +158,39 @@ export default class Contact extends React.Component {
                                                                     checked={this.state.agree}
                                                                     onChange={this.handleInputChange}
                                                                 />
+                                                                <Input
+                                                                    type="hidden"
+                                                                    name="check"
+                                                                    value={this.state.agree ? "You can contact me" : "Don't contact me!"}
+                                                                />
                                                                 <strong> May I contact you?</strong>
                                                             </FormGroup>
                                                             <FormGroup className="form-group col-sm-12">
                                                                 <Input
                                                                     type="text"
                                                                     name="title"
-                                                                    placeholder="Title* (Optional)"
+                                                                    placeholder="Title*"
                                                                     value={this.state.title}
-                                                                    valid={this.state.title === '' ? false : true}
+                                                                    valid={this.state.title === '' ? false : errors.title === ''}
+                                                                    invalid={errors.title !== ''}
                                                                     onChange={this.handleInputChange}
+                                                                    onBlur={this.handleBlur('title')}
                                                                 />
+                                                                <FormFeedback>{errors.title}</FormFeedback>
                                                             </FormGroup>
                                                             <FormGroup className="form-group col-sm-12">
                                                                 <Input
                                                                     type="textarea"
                                                                     name="message"
                                                                     id="message"
-                                                                    valid={this.state.message === '' ? false : true}
+                                                                    valid={this.state.message === '' ? false : errors.message === ''}
+                                                                    invalid={errors.message !== ''}
                                                                     placeholder="Message*"
                                                                     value={this.state.message}
-                                                                    onChange={this.handleInputChange}>
-                                                                </Input>
+                                                                    onChange={this.handleInputChange}
+                                                                    onBlur={this.handleBlur('message')}
+                                                                />
+                                                                <FormFeedback>{errors.message}</FormFeedback>
                                                             </FormGroup>
                                                             <FormGroup className="col-sm-12"><Button type="submit"
                                                                 className="btn">Contact me</Button></FormGroup>
